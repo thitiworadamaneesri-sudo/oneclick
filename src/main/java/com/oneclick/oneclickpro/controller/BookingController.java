@@ -1,5 +1,8 @@
 package com.oneclick.oneclickpro.controller;
 
+import com.oneclick.oneclickpro.service.LineNotificationService;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.core.PreparedStatementCreatorFactory;
@@ -21,9 +24,12 @@ import java.util.Arrays;
 public class BookingController {
 
     private final JdbcTemplate jdbcTemplate;
+    private final LineNotificationService lineNotificationService;
 
-    public BookingController(JdbcTemplate jdbcTemplate) {
+    public BookingController(JdbcTemplate jdbcTemplate,
+                             LineNotificationService lineNotificationService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.lineNotificationService = lineNotificationService;
     }
 
     @PostMapping("/save")
@@ -32,11 +38,25 @@ public class BookingController {
 
         String[] carRegs = extractVehicleRegs(body.get("vehicleRegistrations"));
 
+        Integer resolvedAreaId = toIntOrNull(
+            firstNonBlank(
+                body.get("areaId"),
+                body.get("area_id"),
+                body.get("productArea"),
+                body.get("product_area")
+            )
+        );
+
         Integer resolvedBuildingId = resolveBuildingLocationId(body);
         Integer resolvedOfficeId = resolveLocationId(body);
 
-        System.out.println("resolvedBuildingId = " + resolvedBuildingId);
-        System.out.println("resolvedOfficeId = " + resolvedOfficeId);
+        System.out.println("payload = " + body);
+System.out.println("buildingId raw = " + body.get("buildingId"));
+System.out.println("building_id raw = " + body.get("building_id"));
+System.out.println("officeId raw = " + body.get("officeId"));
+System.out.println("office_id raw = " + body.get("office_id"));
+System.out.println("resolvedBuildingId = " + resolvedBuildingId);
+System.out.println("resolvedOfficeId = " + resolvedOfficeId);
 
         if (resolvedBuildingId == null) {
             throw new IllegalArgumentException("buildingId/building_id is required");
@@ -93,15 +113,36 @@ public class BookingController {
                 cur_moo,
                 cur_street,
                 organization_name,
+                business_detail,
                 contp_prefix,
                 contp_auth_name,
                 contp_lasname,
                 contp_email,
                 contp_contact,
+                auth_prefix1,
+                auth_name1,
+                auth_lasname1,
+                auth_email1,
+                auth_contact1,
+                auth_signature_type1,
+
+                auth_prefix2,
+                auth_name2,
+                auth_lasname2,
+                auth_email2,
+                auth_contact2,
+                auth_signature_type2,
+
+                auth_prefix3,
+                auth_name3,
+                auth_lasname3,
+                auth_email3,
+                auth_contact3,
+                auth_signature_type3,
                 number_of_occupants,
                 add_on_detail,
                 info_channel
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?,?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
         Object[] params = new Object[]{
@@ -128,9 +169,9 @@ public class BookingController {
             body.get("lastname"),
             normalizeDate(body.get("dateOfBirth")),
             body.get("contactDetail1"),
-            body.get("contactDetail2"),
+            pick(body, "contactDetail2", "altPhone"),
             body.get("email1"),
-            body.get("email2"),
+            pick(body, "email2", "altEmail"),
             body.get("lineId"),
             body.get("province"),
             body.get("district"),
@@ -147,11 +188,35 @@ public class BookingController {
             body.get("curMoo"),
             body.get("curStreet"),
             body.get("organizationName"),
-            body.get("contpPrefix"),
-            body.get("contpAuthName"),
-            body.get("contpLastname"),
-            body.get("contpEmail"),
-            body.get("contpContact"),
+            
+            pick(body, "business_detail", "businessType", "business_type", "bizType", "companyType"),
+            pick(body, "contpPrefix", "contp_prefix", "contactTitle"),
+            pick(body, "contpAuthName", "contp_name", "contactFirstName"),
+            pick(body, "contpLastname", "contp_lastname", "contactLastName"),
+            pick(body, "contpEmail", "contp_email", "contactEmail"),
+            pick(body, "contpContact", "contp_contact", "contactPhone"),
+
+            pick(body, "auth_prefix1"),
+pick(body, "auth_name1", "auth_firstname1"),
+pick(body, "auth_lasname1", "auth_lastname1"),
+pick(body, "auth_email1"),
+pick(body, "auth_contact1"),
+pick(body, "auth_signature_type1", "auth_sign_mode1"),
+
+pick(body, "auth_prefix2"),
+pick(body, "auth_name2", "auth_firstname2"),
+pick(body, "auth_lasname2", "auth_lastname2"),
+pick(body, "auth_email2"),
+pick(body, "auth_contact2"),
+pick(body, "auth_signature_type2", "auth_sign_mode2"),
+
+pick(body, "auth_prefix3"),
+pick(body, "auth_name3", "auth_firstname3"),
+pick(body, "auth_lasname3", "auth_lastname3"),
+pick(body, "auth_email3"),
+pick(body, "auth_contact3"),
+pick(body, "auth_signature_type3", "auth_sign_mode3"),
+
             toOccupants(body.get("occupantsCount")),
             body.get("extraDetails"),
             body.get("discoveryChannel")
@@ -161,74 +226,136 @@ public class BookingController {
             KeyHolder keyHolder = new GeneratedKeyHolder();
 
             int[] types = new int[]{
-                Types.VARCHAR, // lease_commencement_date
-                Types.VARCHAR, // lease_end_date
-                Types.INTEGER, // duration_of_contract
-                Types.VARCHAR, // process_type
-                Types.INTEGER, // product_area
-                Types.VARCHAR, // product_type
-                Types.INTEGER, // building
-                Types.INTEGER, // location_id
-                Types.VARCHAR, // parkinglot_req
-                Types.INTEGER, // car_type
-                Types.INTEGER, // car_qty
-                Types.INTEGER, // mot_qty
-                Types.VARCHAR, // car_license_plate1
-                Types.VARCHAR, // car_license_plate2
-                Types.VARCHAR, // car_license_plate3
-                Types.VARCHAR, // car_license_plate4
-                Types.VARCHAR, // tax_number
-                Types.VARCHAR, // tax_number_type
-                Types.VARCHAR, // prefix
-                Types.VARCHAR, // name
-                Types.VARCHAR, // lasname
-                Types.VARCHAR, // date_of_birth
-                Types.VARCHAR, // contact_detail1
-                Types.VARCHAR, // contact_detail2
-                Types.VARCHAR, // email1
-                Types.VARCHAR, // email2
-                Types.VARCHAR, // line_id
-                Types.VARCHAR, // province
-                Types.VARCHAR, // district
-                Types.VARCHAR, // subdist
-                Types.VARCHAR, // postcode
-                Types.VARCHAR, // address
-                Types.VARCHAR, // moo
-                Types.VARCHAR, // street
-                Types.VARCHAR, // cur_province
-                Types.VARCHAR, // cur_district
-                Types.VARCHAR, // cur_subdist
-                Types.VARCHAR, // cur_postcode
-                Types.VARCHAR, // cur_address
-                Types.VARCHAR, // cur_moo
-                Types.VARCHAR, // cur_street
-                Types.VARCHAR, // organization_name
-                Types.VARCHAR, // contp_prefix
-                Types.VARCHAR, // contp_auth_name
-                Types.VARCHAR, // contp_lasname
-                Types.VARCHAR, // contp_email
-                Types.VARCHAR, // contp_contact
-                Types.INTEGER, // number_of_occupants
-                Types.VARCHAR, // add_on_detail
-                Types.VARCHAR  // info_channel
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.INTEGER,
+                Types.VARCHAR,
+                Types.INTEGER,
+                Types.VARCHAR,
+                Types.INTEGER,
+                Types.INTEGER,
+                Types.VARCHAR,
+                Types.INTEGER,
+                Types.INTEGER,
+                Types.INTEGER,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.VARCHAR,
+                Types.INTEGER,
+                Types.VARCHAR,
+                Types.VARCHAR
             };
 
             PreparedStatementCreatorFactory pscFactory =
-                new PreparedStatementCreatorFactory(sql, types);
+                new PreparedStatementCreatorFactory(sql);
 
             pscFactory.setReturnGeneratedKeys(true);
 
             PreparedStatementCreator psc =
                 pscFactory.newPreparedStatementCreator(Arrays.asList(params));
 
+                System.out.println("resolvedAreaId = " + resolvedAreaId);
+System.out.println("resolvedBuildingId = " + resolvedBuildingId);
+System.out.println("resolvedOfficeId = " + resolvedOfficeId);
+System.out.println("params.length = " + params.length);
+System.out.println("params = " + Arrays.toString(params));
+
             jdbcTemplate.update(psc, keyHolder);
 
             Number generatedId = keyHolder.getKey();
+
+            try {
+                String zoneDisplay = resolveZoneDisplay(body, resolvedAreaId);
+                String buildingDisplay = resolveBuildingDisplay(body, resolvedBuildingId);
+                String roomDisplay = resolveRoomDisplay(body, resolvedOfficeId);
+
+                String displayName = resolveLineDisplayName(body);
+
+String message = """
+📢 แจ้งเตือน OneClick
+
+มีผู้ลงทะเบียนใหม่
+
+เลขรายการ: %s
+📌 ประเภท: %s
+👤 ชื่อ: %s
+🏢 โซน: %s
+🏢 อาคาร: %s
+🚪 ห้อง: %s
+📅 เริ่ม: %s
+📅 สิ้นสุด: %s
+
+👉 กรุณาตรวจสอบในระบบ
+""".formatted(
+    generatedId != null ? generatedId.longValue() : "-",
+    resolveProcessType(body) != null ? resolveProcessType(body) : "-",
+    displayName,
+    zoneDisplay,
+    buildingDisplay,
+    roomDisplay,
+    normalizeDate(body.get("leaseCommencementDate")) != null ? normalizeDate(body.get("leaseCommencementDate")) : "-",
+    normalizeDate(body.get("leaseEndDate")) != null ? normalizeDate(body.get("leaseEndDate")) : "-"
+);
+                
+
+                lineNotificationService.sendText(message);
+            } catch (Exception lineEx) {
+                lineEx.printStackTrace();
+            }
+
             return generatedId != null ? "saved:" + generatedId.longValue() : "saved";
         } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
+    e.printStackTrace();
+    return "error: " + e.getClass().getSimpleName() + " - " + e.getMessage();
+}
     }
 
     @GetMapping("/admin-list")
@@ -242,12 +369,17 @@ public class BookingController {
                 prefix AS title,
                 name AS firstName,
                 lasname AS lastName,
-                CONCAT(COALESCE(prefix, ''),
-                       CASE WHEN prefix IS NOT NULL AND prefix <> '' THEN ' ' ELSE '' END,
-                       COALESCE(name, ''),
-                       CASE WHEN name IS NOT NULL AND name <> '' THEN ' ' ELSE '' END,
-                       COALESCE(lasname, '')
-                ) AS fullName,
+                CASE
+                    WHEN organization_name IS NOT NULL AND TRIM(organization_name) <> ''
+                        THEN organization_name
+                    ELSE CONCAT(
+                        COALESCE(prefix, ''),
+                        CASE WHEN prefix IS NOT NULL AND TRIM(prefix) <> '' THEN ' ' ELSE '' END,
+                        COALESCE(name, ''),
+                        CASE WHEN name IS NOT NULL AND TRIM(name) <> '' THEN ' ' ELSE '' END,
+                        COALESCE(lasname, '')
+                    )
+                END AS fullName,
                 tax_number AS idCard,
                 NULL AS passportNo,
                 NULL AS occupation,
@@ -301,6 +433,27 @@ public class BookingController {
         );
     }
 
+    @GetMapping("/api/zones")
+public ResponseEntity<?> getZones() {
+    try {
+        String sql = """
+            SELECT area_id AS id,
+                   area_name AS th,
+                   area_name_eng AS en
+            FROM ppavis_oneclickpro.oc_areas_all
+            WHERE active = 'Y'
+            ORDER BY area_id
+        """;
+
+        return ResponseEntity.ok(jdbcTemplate.queryForList(sql));
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.status(500)
+                .body("ZONE ERROR: " + e.getMessage());
+    }
+}
+
     private String firstNonBlank(Object... values) {
         for (Object value : values) {
             if (value != null) {
@@ -313,19 +466,37 @@ public class BookingController {
         return null;
     }
 
-    private Integer resolveBuildingLocationId(Map<String, Object> body) {
-        return toIntOrNull(firstNonBlank(
-            body.get("buildingId"),
-            body.get("building_id")
-        ));
+    private Object pick(Map<String, Object> body, String... keys) {
+        for (String key : keys) {
+            if (key == null || key.trim().isEmpty()) {
+                continue;
+            }
+            Object value = body.get(key);
+            if (value != null && !String.valueOf(value).trim().isEmpty()) {
+                return value;
+            }
+        }
+        return null;
     }
 
-    private Integer resolveLocationId(Map<String, Object> body) {
-        return toIntOrNull(firstNonBlank(
-            body.get("officeId"),
-            body.get("office_id")
-        ));
-    }
+    private Integer resolveBuildingLocationId(Map<String, Object> body) {
+    return toIntOrNull(firstNonBlank(
+        body.get("buildingId"),
+        body.get("building_id"),
+        body.get("building"),
+        body.get("buildingLocationId")
+    ));
+}
+
+private Integer resolveLocationId(Map<String, Object> body) {
+    return toIntOrNull(firstNonBlank(
+        body.get("officeId"),
+        body.get("office_id"),
+        body.get("location_id"),
+        body.get("roomId"),
+        body.get("selectedOfficeId")
+    ));
+}
 
     private String resolveProcessType(Map<String, Object> body) {
         String raw = firstNonBlank(
@@ -348,6 +519,147 @@ public class BookingController {
         }
 
         return raw.trim();
+    }
+
+    private String resolveLineDisplayName(Map<String, Object> body) {
+    String organizationName = firstNonBlank(
+        body.get("organizationName"),
+        body.get("organization_name"),
+        body.get("companyName"),
+        body.get("businessName")
+    );
+
+    if (organizationName != null) {
+        return organizationName;
+    }
+
+    String prefix = firstNonBlank(body.get("prefix"));
+    String firstName = firstNonBlank(body.get("name"));
+    String lastName = firstNonBlank(body.get("lastname"));
+
+    String fullName = (
+        (prefix != null ? prefix + " " : "") +
+        (firstName != null ? firstName + " " : "") +
+        (lastName != null ? lastName : "")
+    ).trim();
+
+    return fullName.isEmpty() ? "-" : fullName;
+}
+
+    private String resolveZoneDisplay(Map<String, Object> body, Integer areaId) {
+        String direct = firstNonBlank(
+            body.get("zoneDp"),
+            body.get("zoneDP"),
+            body.get("zoneName"),
+            body.get("zone"),
+            body.get("areaDp"),
+            body.get("areaDP"),
+            body.get("areaName"),
+            body.get("projectZoneName")
+        );
+
+        if (direct != null && !isNumericLike(direct)) {
+            return direct;
+        }
+
+        if (areaId == null) {
+            return "-";
+        }
+
+        try {
+            String sql = """
+                SELECT area_name
+                FROM ppavis_oneclickpro.oc_areas_all
+                WHERE area_id = ?
+                LIMIT 1
+                """;
+
+            String result = jdbcTemplate.queryForObject(sql, String.class, areaId);
+
+            if (result != null && !result.trim().isEmpty()) {
+                return result.trim();
+            }
+        } catch (Exception ignored) {
+        }
+
+        return String.valueOf(areaId);
+    }
+
+    private String resolveBuildingDisplay(Map<String, Object> body, Integer buildingId) {
+        String direct = firstNonBlank(
+            body.get("buildingDp"),
+            body.get("buildingDP"),
+            body.get("buildingName"),
+            body.get("buildingLabel"),
+            body.get("building")
+        );
+
+        if (direct != null && !isNumericLike(direct)) {
+            return direct;
+        }
+
+        if (buildingId == null) {
+            return "-";
+        }
+
+        try {
+            String sql = """
+                SELECT BUILDING_DP
+                FROM oc_properties_locs_all
+                WHERE LOCATION_ID = ?
+                LIMIT 1
+                """;
+
+            String result = jdbcTemplate.queryForObject(sql, String.class, buildingId);
+
+            if (result != null && !result.trim().isEmpty()) {
+                return result.trim();
+            }
+        } catch (Exception ignored) {
+        }
+
+        return String.valueOf(buildingId);
+    }
+
+    private String resolveRoomDisplay(Map<String, Object> body, Integer officeId) {
+        String direct = firstNonBlank(
+            body.get("officeDp"),
+            body.get("officeDP"),
+            body.get("officeDisplay"),
+            body.get("roomDisplay"),
+            body.get("roomNo")
+        );
+
+        if (direct != null && !isNumericLike(direct)) {
+            return direct;
+        }
+
+        if (officeId == null) {
+            return "-";
+        }
+
+        try {
+            String sql = """
+                SELECT OFFICE_DP
+                FROM oc_properties_locs_all
+                WHERE LOCATION_ID = ?
+                LIMIT 1
+                """;
+
+            String result = jdbcTemplate.queryForObject(sql, String.class, officeId);
+
+            if (result != null && !result.trim().isEmpty()) {
+                return result.trim();
+            }
+        } catch (Exception ignored) {
+        }
+
+        return String.valueOf(officeId);
+    }
+
+    private boolean isNumericLike(String value) {
+        if (value == null) return false;
+        return value.trim().matches("^\\d+$");
     }
 
     private String resolveTaxNumber(Map<String, Object> body) {

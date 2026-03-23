@@ -3,7 +3,11 @@ package com.oneclick.oneclickpro.controller;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @CrossOrigin(origins = "*")
@@ -43,10 +47,13 @@ public class AdminController {
             List<Map<String, Object>> vehicles = extractVehicles(guest);
             List<Map<String, Object>> signers = extractSigners(guest);
 
+            boolean isCorporate = isCorporateGuest(guest);
+            String resolvedBillingType = resolveBillingAddressType(guest, isCorporate);
+
             Map<String, Object> data = new LinkedHashMap<>();
 
             // ============================
-            // Personal
+            // Personal / Common
             // ============================
             data.put("guestTransId", guestTransId);
 
@@ -55,7 +62,7 @@ public class AdminController {
             )));
 
             data.put("idCardNumber", firstNonBlank(guest,
-                "tax_number", "citizen_id", "id_card_number", "CITIZEN_ID"
+                "citizen_id", "id_card_number", "CITIZEN_ID"
             ));
 
             data.put("passportNumber", firstNonBlank(guest,
@@ -63,7 +70,7 @@ public class AdminController {
             ));
 
             data.put("taxNumber", firstNonBlank(guest,
-                "company_tax_id", "organization_tax_id"
+                "tax_number", "company_tax_id", "organization_tax_id"
             ));
 
             data.put("title", firstNonBlank(guest,
@@ -107,109 +114,72 @@ public class AdminController {
             ));
 
             // ============================
-            // Address on ID Card
+            // ID card / certificate address
             // ============================
-            data.put("idCardHouseNo", firstNonBlank(guest,
-                "address", "reg_houseNo", "house_no"
-            ));
-            data.put("idCardVillageNo", firstNonBlank(guest,
-                "moo", "reg_moo"
-            ));
-            data.put("idCardRoad", firstNonBlank(guest,
-                "street", "reg_road"
-            ));
-            data.put("idCardProvince", firstNonBlank(guest,
-                "province", "reg_province"
-            ));
-            data.put("idCardSubdistrict", firstNonBlank(guest,
-                "subdist", "reg_subdistrict"
-            ));
-            data.put("idCardDistrict", firstNonBlank(guest,
-                "district", "reg_district"
-            ));
-            data.put("idCardPostalCode", firstNonBlank(guest,
-                "postcode", "reg_zip"
-            ));
+            data.put("idCardHouseNo", firstNonBlank(guest, "address"));
+            data.put("idCardVillageNo", firstNonBlank(guest, "moo"));
+            data.put("idCardRoad", firstNonBlank(guest, "street"));
+            data.put("idCardProvince", firstNonBlank(guest, "province"));
+            data.put("idCardDistrict", firstNonBlank(guest, "district"));
+            data.put("idCardSubdistrict", firstNonBlank(guest, "subdist"));
+            data.put("idCardPostalCode", firstNonBlank(guest, "postcode"));
 
             // ============================
-            // Contact Address
+            // Contact address
             // ============================
             data.put("sameAsIdCardAddress", normalizeYesNoByAddress(guest));
-
-            data.put("contactHouseNo", firstNonBlank(guest,
-                "cur_address", "con_houseNo"
-            ));
-            data.put("contactVillageNo", firstNonBlank(guest,
-                "cur_moo", "con_moo"
-            ));
-            data.put("contactRoad", firstNonBlank(guest,
-                "cur_street", "con_road"
-            ));
-            data.put("contactProvince", firstNonBlank(guest,
-                "cur_province", "con_province"
-            ));
-            data.put("contactSubdistrict", firstNonBlank(guest,
-                "cur_subdist", "con_subdistrict"
-            ));
-            data.put("contactDistrict", firstNonBlank(guest,
-                "cur_district", "con_district"
-            ));
-            data.put("contactPostalCode", firstNonBlank(guest,
-                "cur_postcode", "con_zip"
-            ));
+            data.put("contactHouseNo", firstNonBlank(guest, "cur_address"));
+            data.put("contactVillageNo", firstNonBlank(guest, "cur_moo"));
+            data.put("contactRoad", firstNonBlank(guest, "cur_street"));
+            data.put("contactProvince", firstNonBlank(guest, "cur_province"));
+            data.put("contactDistrict", firstNonBlank(guest, "cur_district"));
+            data.put("contactSubdistrict", firstNonBlank(guest, "cur_subdist"));
+            data.put("contactPostalCode", firstNonBlank(guest, "cur_postcode"));
 
             // ============================
-            // Billing Address
+            // Billing address
             // ============================
-            data.put("billingAddressType", "ที่อยู่ตามบัตรประชาชน / Address on ID Card");
-            data.put("billingHouseNo", firstNonBlank(guest, "address"));
-            data.put("billingVillageNo", firstNonBlank(guest, "moo"));
-            data.put("billingRoad", firstNonBlank(guest, "street"));
-            data.put("billingProvince", firstNonBlank(guest, "province"));
-            data.put("billingSubdistrict", firstNonBlank(guest, "subdist"));
-            data.put("billingDistrict", firstNonBlank(guest, "district"));
-            data.put("billingPostalCode", firstNonBlank(guest, "postcode"));
+            data.put("billingAddressType", resolvedBillingType);
+            populateBillingAddress(data, guest, resolvedBillingType);
 
             // ============================
-            // Property / Booking
+            // Booking / contract
             // ============================
-            data.put("propertyType", firstNonBlank(guest,
-                "product_type", "PROPERTY_TYPE"
-            ));
-
-            data.put("building", firstNonBlank(locationInfo,
-                "buildingName"
-            ));
-
-            data.put("floor", firstNonBlank(locationInfo,
-                "floorName"
-            ));
-
-            data.put("roomNo", firstNonBlank(locationInfo,
-                "officeName"
-            ));
-
-            data.put("officeId", firstNonBlank(guest,
-                "location_id"
-            ));
-
-            data.put("startDate", firstNonBlank(guest,
-                "lease_commencement_date"
-            ));
-
-            data.put("endDate", firstNonBlank(guest,
-                "lease_end_date"
-            ));
-
-            data.put("contractMonths", firstNonBlank(guest,
-                "duration_of_contract"
-            ));
-
             data.put("processType", normalizeProcessType(firstNonBlank(
                 guest, "process_type", "transaction_type"
             )));
 
+            data.put("startDate", firstNonBlank(
+                guest, "lease_commencement_date", "start_date"
+            ));
+
+            data.put("endDate", firstNonBlank(
+                guest, "lease_end_date", "end_date"
+            ));
+
             data.put("zone", zoneName);
+
+            data.put("propertyType", firstNonBlank(
+                guest, "product_type", "property_type"
+            ));
+
+            data.put("building", firstNonBlank(
+                locationInfo, "buildingName", "building_name"
+            ));
+
+            data.put("floor", firstNonBlank(
+                locationInfo, "floorName", "floor_name"
+            ));
+
+            data.put("roomNo", firstNonBlank(
+                locationInfo, "officeName", "office_name"
+            ));
+
+            data.put("officeId", officeId);
+
+            data.put("contractMonths", firstNonBlank(
+                guest, "duration_of_contract"
+            ));
 
             data.put("discoveryChannel", firstNonBlank(
                 guest, "info_channel", "discovery_channel"
@@ -235,13 +205,42 @@ public class AdminController {
             data.put("vehicles", vehicles);
 
             // ============================
-            // Company / Signers
+            // Company / Signers / Contact person
             // ============================
+            data.put("applicantType", firstNonBlank(
+                guest, "applicant_type", "applicantType", "customer_type", "customerType", "tenant_type", "tenantType"
+            ));
+            data.put("customerType", firstNonBlank(
+                guest, "customer_type", "customerType"
+            ));
+            data.put("tenantType", firstNonBlank(
+                guest, "tenant_type", "tenantType"
+            ));
+
             data.put("businessType", firstNonBlank(
                 guest, "business_detail"
             ));
             data.put("companyName", firstNonBlank(
-                guest, "organization_name"
+                guest, "organization_name", "organizationName", "company_name", "companyName"
+            ));
+            data.put("companyTaxId", firstNonBlank(
+                guest, "company_tax_id", "organization_tax_id", "tax_number"
+            ));
+
+            data.put("contactPersonTitle", firstNonBlank(
+                guest, "contp_prefix"
+            ));
+            data.put("contactPersonFirstName", firstNonBlank(
+                guest, "contp_auth_name", "contp_name"
+            ));
+            data.put("contactPersonLastName", firstNonBlank(
+                guest, "contp_auth_lastname", "contp_lastname", "contp_lasname"
+            ));
+            data.put("contactPersonEmail", firstNonBlank(
+                guest, "contp_email"
+            ));
+            data.put("contactPersonPhone", firstNonBlank(
+                guest, "contp_contact"
             ));
 
             data.put("signerCount", signers.size());
@@ -259,6 +258,107 @@ public class AdminController {
             response.put("message", e.getMessage());
             return response;
         }
+    }
+
+    private void populateBillingAddress(
+        Map<String, Object> data,
+        Map<String, Object> guest,
+        String billingType
+    ) {
+        String normalized = trimSafe(billingType).toLowerCase();
+
+        if ("contact".equals(normalized) || normalized.contains("contact")) {
+            data.put("billingHouseNo", firstNonBlank(guest, "cur_address"));
+            data.put("billingVillageNo", firstNonBlank(guest, "cur_moo"));
+            data.put("billingRoad", firstNonBlank(guest, "cur_street"));
+            data.put("billingProvince", firstNonBlank(guest, "cur_province"));
+            data.put("billingDistrict", firstNonBlank(guest, "cur_district"));
+            data.put("billingSubdistrict", firstNonBlank(guest, "cur_subdist"));
+            data.put("billingPostalCode", firstNonBlank(guest, "cur_postcode"));
+            return;
+        }
+
+        if ("signer1".equals(normalized) || normalized.contains("authorized director #1")) {
+            data.put("billingHouseNo", firstNonBlank(guest, "address"));
+            data.put("billingVillageNo", firstNonBlank(guest, "moo"));
+            data.put("billingRoad", firstNonBlank(guest, "street"));
+            data.put("billingProvince", firstNonBlank(guest, "province"));
+            data.put("billingDistrict", firstNonBlank(guest, "district"));
+            data.put("billingSubdistrict", firstNonBlank(guest, "subdist"));
+            data.put("billingPostalCode", firstNonBlank(guest, "postcode"));
+            return;
+        }
+
+        if ("other".equals(normalized) || normalized.contains("other")) {
+            data.put("billingHouseNo", firstNonBlank(guest, "billing_address", "billing_house_no"));
+            data.put("billingVillageNo", firstNonBlank(guest, "billing_moo", "billing_village_no"));
+            data.put("billingRoad", firstNonBlank(guest, "billing_street", "billing_road"));
+            data.put("billingProvince", firstNonBlank(guest, "billing_province"));
+            data.put("billingDistrict", firstNonBlank(guest, "billing_district"));
+            data.put("billingSubdistrict", firstNonBlank(guest, "billing_subdist", "billing_subdistrict"));
+            data.put("billingPostalCode", firstNonBlank(guest, "billing_postcode", "billing_postal_code"));
+            return;
+        }
+
+        data.put("billingHouseNo", firstNonBlank(guest, "address"));
+        data.put("billingVillageNo", firstNonBlank(guest, "moo"));
+        data.put("billingRoad", firstNonBlank(guest, "street"));
+        data.put("billingProvince", firstNonBlank(guest, "province"));
+        data.put("billingDistrict", firstNonBlank(guest, "district"));
+        data.put("billingSubdistrict", firstNonBlank(guest, "subdist"));
+        data.put("billingPostalCode", firstNonBlank(guest, "postcode"));
+    }
+
+    private String resolveBillingAddressType(Map<String, Object> guest, boolean isCorporate) {
+        String rawType = firstNonBlank(
+            guest,
+            "billing_source",
+            "billingSource",
+            "billing_address_type",
+            "billingAddressType"
+        );
+
+        String normalized = trimSafe(rawType).toLowerCase();
+
+        if ("registered".equals(normalized)) {
+            return "registered";
+        }
+        if ("contact".equals(normalized)) {
+            return "contact";
+        }
+        if ("signer1".equals(normalized)) {
+            return "signer1";
+        }
+        if ("other".equals(normalized)) {
+            return "other";
+        }
+
+        return isCorporate ? "signer1" : "registered";
+    }
+
+    private boolean isCorporateGuest(Map<String, Object> guest) {
+        String applicantType = firstNonBlank(
+            guest,
+            "applicant_type", "applicantType",
+            "customer_type", "customerType",
+            "tenant_type", "tenantType"
+        ).toLowerCase();
+
+        String taxNumberType = firstNonBlank(
+            guest,
+            "tax_number_type", "document_type", "doc_type"
+        ).toLowerCase();
+
+        return "company".equals(applicantType)
+            || "corporate".equals(applicantType)
+            || "juristic".equals(applicantType)
+            || "juristic_person".equals(applicantType)
+            || "นิติบุคคล".equals(applicantType)
+            || "company_tax".equals(taxNumberType)
+            || hasRealValue(guest.get("organization_name"))
+            || hasRealValue(guest.get("company_name"))
+            || hasRealValue(guest.get("auth_name1"))
+            || hasRealValue(guest.get("auth_firstname1"));
     }
 
     private Map<String, Object> findGuestTransById(Long id) {
@@ -291,7 +391,6 @@ public class AdminController {
             String locationCode = str(office.get("LOCATION_CODE"));
             String alias = str(office.get("LOCATION_ALIAS"));
 
-            // ตัวอย่าง LOCATION_CODE = CYA032-2F-2205
             if (!isBlank(locationCode)) {
                 String[] parts = locationCode.split("-");
 
@@ -306,19 +405,10 @@ public class AdminController {
                 result.put("officeName", alias);
             }
 
-            if (!result.containsKey("buildingName")) {
-                result.put("buildingName", "");
-            }
-
-            if (!result.containsKey("floorName")) {
-                result.put("floorName", "");
-            }
-
+            return result;
         } catch (Exception e) {
-            e.printStackTrace();
+            return result;
         }
-
-        return result;
     }
 
     private String findAreaNameByAreaId(String areaId) {
@@ -331,39 +421,35 @@ public class AdminController {
                 WHERE area_id = ?
             """, areaId);
 
-            if (rows.isEmpty()) {
-                return "";
-            }
+            if (rows.isEmpty()) return areaId;
 
-            return firstNonBlank(rows.get(0), "area_name", "AREA_NAME");
+            return str(rows.get(0).get("area_name"));
         } catch (Exception e) {
-            e.printStackTrace();
-            return "";
+            return areaId;
         }
     }
 
     private List<Map<String, Object>> extractVehicles(Map<String, Object> guest) {
         List<Map<String, Object>> list = new ArrayList<>();
 
-        addVehicle(list, "รถยนต์", guest.get("car_license_plate1"));
-        addVehicle(list, "รถยนต์", guest.get("car_license_plate2"));
-        addVehicle(list, "รถยนต์", guest.get("car_license_plate3"));
-        addVehicle(list, "รถยนต์", guest.get("car_license_plate4"));
+        addVehicle(list, "รถยนต์ (Car)", guest.get("car_license_plate1"));
+        addVehicle(list, "รถยนต์ (Car)", guest.get("car_license_plate2"));
+        addVehicle(list, "รถยนต์ (Car)", guest.get("car_license_plate3"));
+        addVehicle(list, "รถยนต์ (Car)", guest.get("car_license_plate4"));
 
-        addVehicle(list, "จักรยานยนต์", guest.get("mot_license_plate1"));
-        addVehicle(list, "จักรยานยนต์", guest.get("mot_license_plate2"));
-        addVehicle(list, "จักรยานยนต์", guest.get("mot_license_plate3"));
-        addVehicle(list, "จักรยานยนต์", guest.get("mot_license_plate4"));
+        addVehicle(list, "จักรยานยนต์ (Motorcycle)", guest.get("mot_license_plate1"));
+        addVehicle(list, "จักรยานยนต์ (Motorcycle)", guest.get("mot_license_plate2"));
+        addVehicle(list, "จักรยานยนต์ (Motorcycle)", guest.get("mot_license_plate3"));
+        addVehicle(list, "จักรยานยนต์ (Motorcycle)", guest.get("mot_license_plate4"));
 
         return list;
     }
 
-    private void addVehicle(List<Map<String, Object>> list, String type, Object registrationValue) {
-        String reg = str(registrationValue);
-        if (!isBlank(reg) && !"null".equalsIgnoreCase(reg)) {
+    private void addVehicle(List<Map<String, Object>> list, String type, Object reg) {
+        if (hasRealValue(reg)) {
             Map<String, Object> v = new LinkedHashMap<>();
             v.put("type", type);
-            v.put("registration", reg);
+            v.put("registration", String.valueOf(reg).trim());
             list.add(v);
         }
     }
@@ -385,6 +471,7 @@ public class AdminController {
         if (hasRealValue(guest.get("mot_license_plate2"))) count++;
         if (hasRealValue(guest.get("mot_license_plate3"))) count++;
         if (hasRealValue(guest.get("mot_license_plate4"))) count++;
+
         return count;
     }
 
@@ -433,8 +520,8 @@ public class AdminController {
 
         for (int i = 1; i <= 4; i++) {
             String prefix = firstNonBlank(guest, "auth_prefix" + i);
-            String name = firstNonBlank(guest, "auth_name" + i);
-            String lastname = firstNonBlank(guest, "auth_lastname" + i);
+            String name = firstNonBlank(guest, "auth_name" + i, "auth_firstname" + i);
+            String lastname = firstNonBlank(guest, "auth_lastname" + i, "auth_lasname" + i);
             String email = firstNonBlank(guest, "auth_email" + i);
             String phone = firstNonBlank(guest, "auth_contact" + i);
 
@@ -450,24 +537,6 @@ public class AdminController {
             signer.put("phone", phone);
             signer.put("signMode", "");
             signer.put("position", "");
-            signers.add(signer);
-        }
-
-        String contpName = firstNonBlank(guest, "contp_auth_name");
-        String contpLastname = firstNonBlank(guest, "contp_auth_lastname");
-        String contpEmail = firstNonBlank(guest, "contp_email");
-        String contpPhone = firstNonBlank(guest, "contp_contact");
-        String contpPrefix = firstNonBlank(guest, "contp_prefix");
-
-        if (!isBlank(contpPrefix) || !isBlank(contpName) || !isBlank(contpLastname) || !isBlank(contpEmail) || !isBlank(contpPhone)) {
-            Map<String, Object> signer = new LinkedHashMap<>();
-            signer.put("title", contpPrefix);
-            signer.put("firstName", contpName);
-            signer.put("lastName", contpLastname);
-            signer.put("email", contpEmail);
-            signer.put("phone", contpPhone);
-            signer.put("signMode", "");
-            signer.put("position", "ผู้ติดต่อ");
             signers.add(signer);
         }
 
@@ -490,6 +559,7 @@ public class AdminController {
 
         if ("ID_CARD".equals(v)) return "บัตรประชาชน / ID Card";
         if ("PASSPORT".equals(v)) return "หนังสือเดินทาง / Passport";
+        if ("COMPANY_TAX".equals(v)) return "เลขประจำตัวผู้เสียภาษี / Company Tax ID";
         return value;
     }
 
@@ -532,6 +602,7 @@ public class AdminController {
     }
 
     private String firstNonBlank(Map<String, Object> map, String... keys) {
+        if (map == null || keys == null) return "";
         for (String key : keys) {
             Object v = map.get(key);
             if (hasRealValue(v)) {
@@ -542,6 +613,7 @@ public class AdminController {
     }
 
     private Object firstNonNull(Object... values) {
+        if (values == null) return null;
         for (Object v : values) {
             if (v != null && !String.valueOf(v).trim().isEmpty()) return v;
         }
@@ -573,11 +645,11 @@ public class AdminController {
         return value == null ? "" : value.trim();
     }
 
-    private static String str(Object o) {
-        return o == null ? "" : String.valueOf(o).trim();
+    private String str(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
     }
 
-    private static boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }
