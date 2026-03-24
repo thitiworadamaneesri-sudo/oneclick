@@ -46,7 +46,10 @@ public class ShowroomsController {
             SELECT DISTINCT
                 p.PROPERTY_ID AS propertyId,
                 o.LOCATION_ID AS buildingLocationId,
-                o.BUILDING_DP AS BUILDING_DP
+                o.BUILDING_DP AS BUILDING_DP,
+                o.BUILDING_DP AS building,
+                o.BUILDING_DP AS label,
+                o.BUILDING_DP AS value
             FROM oc_properties_all p
             JOIN oc_properties_locs_all o
                 ON p.PROPERTY_ID = o.PROPERTY_ID
@@ -70,7 +73,11 @@ public class ShowroomsController {
             SELECT DISTINCT
                 o.PROPERTY_ID AS propertyId,
                 o.BUILDING_DP AS BUILDING_DP,
-                o.FLOOR_DP AS FLOOR_DP
+                o.BUILDING_DP AS building,
+                o.FLOOR_DP AS FLOOR_DP,
+                o.FLOOR_DP AS floor,
+                o.FLOOR_DP AS label,
+                o.FLOOR_DP AS value
             FROM oc_properties_locs_all o
             WHERE o.PROPERTY_ID = ?
               AND o.BUILDING_DP = ?
@@ -94,10 +101,15 @@ public class ShowroomsController {
                 o.LOCATION_ID AS locationId,
                 o.OFFICE_ID AS officeId,
                 o.OFFICE_DP AS id,
+                o.OFFICE_DP AS roomId,
+                o.OFFICE_DP AS roomNo,
+                o.OFFICE_DP AS office,
+                o.OFFICE_DP AS OFFICE_DP,
                 o.PROPERTY_ID AS propertyId,
                 o.BUILDING_DP AS BUILDING_DP,
+                o.BUILDING_DP AS building,
                 o.FLOOR_DP AS FLOOR_DP,
-                o.OFFICE_DP AS OFFICE_DP,
+                o.FLOOR_DP AS floor,
                 CASE
                     WHEN o.STATUS = 'Y' THEN 'available'
                     WHEN o.STATUS = 'R' THEN 'occupied'
@@ -126,10 +138,15 @@ public class ShowroomsController {
                 o.LOCATION_ID AS locationId,
                 o.OFFICE_ID AS officeId,
                 o.OFFICE_DP AS id,
+                o.OFFICE_DP AS roomId,
+                o.OFFICE_DP AS roomNo,
+                o.OFFICE_DP AS office,
+                o.OFFICE_DP AS OFFICE_DP,
                 o.PROPERTY_ID AS propertyId,
                 o.BUILDING_DP AS BUILDING_DP,
+                o.BUILDING_DP AS building,
                 o.FLOOR_DP AS FLOOR_DP,
-                o.OFFICE_DP AS OFFICE_DP,
+                o.FLOOR_DP AS floor,
                 CASE
                     WHEN o.STATUS = 'Y' THEN 'available'
                     WHEN o.STATUS = 'R' THEN 'occupied'
@@ -139,10 +156,10 @@ public class ShowroomsController {
             JOIN oc_properties_locs_all o
                 ON p.PROPERTY_ID = o.PROPERTY_ID
             WHERE p.area_id = ?
-                AND p.product_type_id = ?
-                AND o.LOCATION_TYPE_LOOKUP_CODE = 'OFFICE'
-                AND o.OFFICE_DP IS NOT NULL
-                AND o.OFFICE_DP <> ''
+              AND p.product_type_id = ?
+              AND o.LOCATION_TYPE_LOOKUP_CODE = 'OFFICE'
+              AND o.OFFICE_DP IS NOT NULL
+              AND o.OFFICE_DP <> ''
             ORDER BY o.BUILDING_DP, o.FLOOR_DP, o.OFFICE_DP
         """;
 
