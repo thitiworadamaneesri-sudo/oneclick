@@ -13,8 +13,8 @@ public class OneclickproApplication {
         SpringApplication.run(OneclickproApplication.class, args);
     }
 
-    @GetMapping("/ping")
+    @GetMapping("/ping-20260324")
     public String ping() {
-        return "pong";
+        return "pong-20260324";
     }
 }
