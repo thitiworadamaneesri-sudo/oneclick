@@ -8,8 +8,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 public class HealthController {
 
+    public HealthController() {
+        System.out.println("=== HealthController loaded ===");
+    }
+
     @GetMapping("/health")
     public String health() {
+        System.out.println("=== /api/health called ===");
         return "OK";
     }
 }
