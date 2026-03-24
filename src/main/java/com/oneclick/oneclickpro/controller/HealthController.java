@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
 
     public HealthController() {
-        System.out.println("=== HealthController loaded ===");
-    }
+    System.out.println("🔥 HealthController LOADED");
+}
 
     @GetMapping("/health")
     public String health() {
