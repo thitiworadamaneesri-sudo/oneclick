@@ -8,7 +8,7 @@ import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "*")
-@RequestMapping("/api/showrooms")
+@RequestMapping("/api")
 public class ShowroomsController {
 
     private final JdbcTemplate jdbcTemplate;
