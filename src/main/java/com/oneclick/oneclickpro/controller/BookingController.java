@@ -1,8 +1,6 @@
 package com.oneclick.oneclickpro.controller;
 
 import com.oneclick.oneclickpro.service.LineNotificationService;
-
-import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.core.PreparedStatementCreatorFactory;
@@ -14,9 +12,9 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
 
 @RestController
 @CrossOrigin(origins = "*")
@@ -51,12 +49,12 @@ public class BookingController {
         Integer resolvedOfficeId = resolveLocationId(body);
 
         System.out.println("payload = " + body);
-System.out.println("buildingId raw = " + body.get("buildingId"));
-System.out.println("building_id raw = " + body.get("building_id"));
-System.out.println("officeId raw = " + body.get("officeId"));
-System.out.println("office_id raw = " + body.get("office_id"));
-System.out.println("resolvedBuildingId = " + resolvedBuildingId);
-System.out.println("resolvedOfficeId = " + resolvedOfficeId);
+        System.out.println("buildingId raw = " + body.get("buildingId"));
+        System.out.println("building_id raw = " + body.get("building_id"));
+        System.out.println("officeId raw = " + body.get("officeId"));
+        System.out.println("office_id raw = " + body.get("office_id"));
+        System.out.println("resolvedBuildingId = " + resolvedBuildingId);
+        System.out.println("resolvedOfficeId = " + resolvedOfficeId);
 
         if (resolvedBuildingId == null) {
             throw new IllegalArgumentException("buildingId/building_id is required");
@@ -142,7 +140,7 @@ System.out.println("resolvedOfficeId = " + resolvedOfficeId);
                 number_of_occupants,
                 add_on_detail,
                 info_channel
-            ) VALUES (?, ?, ?,?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
         Object[] params = new Object[]{
@@ -188,7 +186,7 @@ System.out.println("resolvedOfficeId = " + resolvedOfficeId);
             body.get("curMoo"),
             body.get("curStreet"),
             body.get("organizationName"),
-            
+
             pick(body, "business_detail", "businessType", "business_type", "bizType", "companyType"),
             pick(body, "contpPrefix", "contp_prefix", "contactTitle"),
             pick(body, "contpAuthName", "contp_name", "contactFirstName"),
@@ -197,25 +195,25 @@ System.out.println("resolvedOfficeId = " + resolvedOfficeId);
             pick(body, "contpContact", "contp_contact", "contactPhone"),
 
             pick(body, "auth_prefix1"),
-pick(body, "auth_name1", "auth_firstname1"),
-pick(body, "auth_lasname1", "auth_lastname1"),
-pick(body, "auth_email1"),
-pick(body, "auth_contact1"),
-pick(body, "auth_signature_type1", "auth_sign_mode1"),
+            pick(body, "auth_name1", "auth_firstname1"),
+            pick(body, "auth_lasname1", "auth_lastname1"),
+            pick(body, "auth_email1"),
+            pick(body, "auth_contact1"),
+            pick(body, "auth_signature_type1", "auth_sign_mode1"),
 
-pick(body, "auth_prefix2"),
-pick(body, "auth_name2", "auth_firstname2"),
-pick(body, "auth_lasname2", "auth_lastname2"),
-pick(body, "auth_email2"),
-pick(body, "auth_contact2"),
-pick(body, "auth_signature_type2", "auth_sign_mode2"),
+            pick(body, "auth_prefix2"),
+            pick(body, "auth_name2", "auth_firstname2"),
+            pick(body, "auth_lasname2", "auth_lastname2"),
+            pick(body, "auth_email2"),
+            pick(body, "auth_contact2"),
+            pick(body, "auth_signature_type2", "auth_sign_mode2"),
 
-pick(body, "auth_prefix3"),
-pick(body, "auth_name3", "auth_firstname3"),
-pick(body, "auth_lasname3", "auth_lastname3"),
-pick(body, "auth_email3"),
-pick(body, "auth_contact3"),
-pick(body, "auth_signature_type3", "auth_sign_mode3"),
+            pick(body, "auth_prefix3"),
+            pick(body, "auth_name3", "auth_firstname3"),
+            pick(body, "auth_lasname3", "auth_lastname3"),
+            pick(body, "auth_email3"),
+            pick(body, "auth_contact3"),
+            pick(body, "auth_signature_type3", "auth_sign_mode3"),
 
             toOccupants(body.get("occupantsCount")),
             body.get("extraDetails"),
@@ -302,11 +300,11 @@ pick(body, "auth_signature_type3", "auth_sign_mode3"),
             PreparedStatementCreator psc =
                 pscFactory.newPreparedStatementCreator(Arrays.asList(params));
 
-                System.out.println("resolvedAreaId = " + resolvedAreaId);
-System.out.println("resolvedBuildingId = " + resolvedBuildingId);
-System.out.println("resolvedOfficeId = " + resolvedOfficeId);
-System.out.println("params.length = " + params.length);
-System.out.println("params = " + Arrays.toString(params));
+            System.out.println("resolvedAreaId = " + resolvedAreaId);
+            System.out.println("resolvedBuildingId = " + resolvedBuildingId);
+            System.out.println("resolvedOfficeId = " + resolvedOfficeId);
+            System.out.println("params.length = " + params.length);
+            System.out.println("params = " + Arrays.toString(params));
 
             jdbcTemplate.update(psc, keyHolder);
 
@@ -319,7 +317,7 @@ System.out.println("params = " + Arrays.toString(params));
 
                 String displayName = resolveLineDisplayName(body);
 
-String message = """
+                String message = """
 📢 แจ้งเตือน OneClick
 
 มีผู้ลงทะเบียนใหม่
@@ -335,16 +333,15 @@ String message = """
 
 👉 กรุณาตรวจสอบในระบบ
 """.formatted(
-    generatedId != null ? generatedId.longValue() : "-",
-    resolveProcessType(body) != null ? resolveProcessType(body) : "-",
-    displayName,
-    zoneDisplay,
-    buildingDisplay,
-    roomDisplay,
-    normalizeDate(body.get("leaseCommencementDate")) != null ? normalizeDate(body.get("leaseCommencementDate")) : "-",
-    normalizeDate(body.get("leaseEndDate")) != null ? normalizeDate(body.get("leaseEndDate")) : "-"
-);
-                
+                    generatedId != null ? generatedId.longValue() : "-",
+                    resolveProcessType(body) != null ? resolveProcessType(body) : "-",
+                    displayName,
+                    zoneDisplay,
+                    buildingDisplay,
+                    roomDisplay,
+                    normalizeDate(body.get("leaseCommencementDate")) != null ? normalizeDate(body.get("leaseCommencementDate")) : "-",
+                    normalizeDate(body.get("leaseEndDate")) != null ? normalizeDate(body.get("leaseEndDate")) : "-"
+                );
 
                 lineNotificationService.sendText(message);
             } catch (Exception lineEx) {
@@ -353,9 +350,9 @@ String message = """
 
             return generatedId != null ? "saved:" + generatedId.longValue() : "saved";
         } catch (Exception e) {
-    e.printStackTrace();
-    return "error: " + e.getClass().getSimpleName() + " - " + e.getMessage();
-}
+            e.printStackTrace();
+            return "error: " + e.getClass().getSimpleName() + " - " + e.getMessage();
+        }
     }
 
     @GetMapping("/admin-list")
@@ -433,27 +430,6 @@ String message = """
         );
     }
 
-    @GetMapping("/api/zones")
-public ResponseEntity<?> getZones() {
-    try {
-        String sql = """
-            SELECT area_id AS id,
-                   area_name AS th,
-                   area_name_eng AS en
-            FROM ppavis_oneclickpro.oc_areas_all
-            WHERE active = 'Y'
-            ORDER BY area_id
-        """;
-
-        return ResponseEntity.ok(jdbcTemplate.queryForList(sql));
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        return ResponseEntity.status(500)
-                .body("ZONE ERROR: " + e.getMessage());
-    }
-}
-
     private String firstNonBlank(Object... values) {
         for (Object value : values) {
             if (value != null) {
@@ -480,23 +456,23 @@ public ResponseEntity<?> getZones() {
     }
 
     private Integer resolveBuildingLocationId(Map<String, Object> body) {
-    return toIntOrNull(firstNonBlank(
-        body.get("buildingId"),
-        body.get("building_id"),
-        body.get("building"),
-        body.get("buildingLocationId")
-    ));
-}
+        return toIntOrNull(firstNonBlank(
+            body.get("buildingId"),
+            body.get("building_id"),
+            body.get("building"),
+            body.get("buildingLocationId")
+        ));
+    }
 
-private Integer resolveLocationId(Map<String, Object> body) {
-    return toIntOrNull(firstNonBlank(
-        body.get("officeId"),
-        body.get("office_id"),
-        body.get("location_id"),
-        body.get("roomId"),
-        body.get("selectedOfficeId")
-    ));
-}
+    private Integer resolveLocationId(Map<String, Object> body) {
+        return toIntOrNull(firstNonBlank(
+            body.get("officeId"),
+            body.get("office_id"),
+            body.get("location_id"),
+            body.get("roomId"),
+            body.get("selectedOfficeId")
+        ));
+    }
 
     private String resolveProcessType(Map<String, Object> body) {
         String raw = firstNonBlank(
@@ -522,29 +498,29 @@ private Integer resolveLocationId(Map<String, Object> body) {
     }
 
     private String resolveLineDisplayName(Map<String, Object> body) {
-    String organizationName = firstNonBlank(
-        body.get("organizationName"),
-        body.get("organization_name"),
-        body.get("companyName"),
-        body.get("businessName")
-    );
+        String organizationName = firstNonBlank(
+            body.get("organizationName"),
+            body.get("organization_name"),
+            body.get("companyName"),
+            body.get("businessName")
+        );
 
-    if (organizationName != null) {
-        return organizationName;
+        if (organizationName != null) {
+            return organizationName;
+        }
+
+        String prefix = firstNonBlank(body.get("prefix"));
+        String firstName = firstNonBlank(body.get("name"));
+        String lastName = firstNonBlank(body.get("lastname"));
+
+        String fullName = (
+            (prefix != null ? prefix + " " : "") +
+            (firstName != null ? firstName + " " : "") +
+            (lastName != null ? lastName : "")
+        ).trim();
+
+        return fullName.isEmpty() ? "-" : fullName;
     }
-
-    String prefix = firstNonBlank(body.get("prefix"));
-    String firstName = firstNonBlank(body.get("name"));
-    String lastName = firstNonBlank(body.get("lastname"));
-
-    String fullName = (
-        (prefix != null ? prefix + " " : "") +
-        (firstName != null ? firstName + " " : "") +
-        (lastName != null ? lastName : "")
-    ).trim();
-
-    return fullName.isEmpty() ? "-" : fullName;
-}
 
     private String resolveZoneDisplay(Map<String, Object> body, Integer areaId) {
         String direct = firstNonBlank(
