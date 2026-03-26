@@ -314,13 +314,13 @@ public class BookingController {
             Number generatedId = keyHolder.getKey();
 
             try {
-                String zoneDisplay = resolveZoneDisplay(body, resolvedAreaId);
-                String buildingDisplay = resolveBuildingDisplay(body, resolvedBuildingId);
-                String roomDisplay = resolveRoomDisplay(body, resolvedOfficeId);
+    String zoneDisplay = resolveZoneDisplay(body, resolvedAreaId);
+    String buildingDisplay = resolveBuildingDisplay(body, resolvedBuildingId);
+    String roomDisplay = resolveRoomDisplay(body, resolvedOfficeId);
 
-                String displayName = resolveLineDisplayName(body);
+    String displayName = resolveLineDisplayName(body);
 
-                String message = """
+    String message = """
 📢 แจ้งเตือน OneClick
 
 มีผู้ลงทะเบียนใหม่
@@ -334,24 +334,30 @@ public class BookingController {
 📅 เริ่ม: %s
 📅 สิ้นสุด: %s
 
-👉 กรุณาตรวจสอบในระบบ 
-https://ppavis.com/registers/#/admin/leads
+👉 กรุณาตรวจสอบในระบบ
 """.formatted(
-    
-                    generatedId != null ? generatedId.longValue() : "-",
-                    resolveProcessType(body) != null ? resolveProcessType(body) : "-",
-                    displayName,
-                    zoneDisplay,
-                    buildingDisplay,
-                    roomDisplay,
-                    normalizeDate(body.get("leaseCommencementDate")) != null ? normalizeDate(body.get("leaseCommencementDate")) : "-",
-                    normalizeDate(body.get("leaseEndDate")) != null ? normalizeDate(body.get("leaseEndDate")) : "-"
-                );
+        generatedId != null ? generatedId.longValue() : "-",
+        resolveProcessType(body) != null ? resolveProcessType(body) : "-",
+        displayName != null ? displayName : "-",
+        zoneDisplay != null ? zoneDisplay : "-",
+        buildingDisplay != null ? buildingDisplay : "-",
+        roomDisplay != null ? roomDisplay : "-",
+        normalizeDate(body.get("leaseCommencementDate")) != null
+            ? normalizeDate(body.get("leaseCommencementDate"))
+            : "-",
+        normalizeDate(body.get("leaseEndDate")) != null
+            ? normalizeDate(body.get("leaseEndDate"))
+            : "-"
+    ) + "\n\nhttps://ppavis.com/registers/#/admin/leads";
 
-                lineNotificationService.sendText(message);
-            } catch (Exception lineEx) {
-                lineEx.printStackTrace();
-            }
+    System.out.println("==== LINE MESSAGE START ====");
+    System.out.println(message);
+    System.out.println("==== LINE MESSAGE END ====");
+
+    lineNotificationService.sendText(message);
+} catch (Exception lineEx) {
+    lineEx.printStackTrace();
+}
 
             return generatedId != null ? "saved:" + generatedId.longValue() : "saved";
         } catch (Exception e) {
