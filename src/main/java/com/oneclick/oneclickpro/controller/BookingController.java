@@ -334,8 +334,10 @@ public class BookingController {
 📅 เริ่ม: %s
 📅 สิ้นสุด: %s
 
-👉 กรุณาตรวจสอบในระบบ
+👉 กรุณาตรวจสอบในระบบ 
+https://ppavis.com/registers/#/admin/leads
 """.formatted(
+    
                     generatedId != null ? generatedId.longValue() : "-",
                     resolveProcessType(body) != null ? resolveProcessType(body) : "-",
                     displayName,
