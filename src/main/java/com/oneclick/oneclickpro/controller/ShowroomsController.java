@@ -38,31 +38,33 @@ public class ShowroomsController {
     }
 
     @GetMapping("/buildings")
-    public List<Map<String, Object>> getBuildings(
-            @RequestParam Integer areaId,
-            @RequestParam Integer productTypeId
-    ) {
-        String sql = """
-            SELECT DISTINCT
-                p.PROPERTY_ID AS propertyId,
-                o.LOCATION_ID AS buildingLocationId,
-                o.BUILDING_DP AS BUILDING_DP,
-                o.BUILDING_DP AS building,
-                o.BUILDING_DP AS label,
-                o.BUILDING_DP AS value
-            FROM oc_properties_all p
-            JOIN oc_properties_locs_all o
-                ON p.PROPERTY_ID = o.PROPERTY_ID
-            WHERE p.area_id = ?
-              AND p.product_type_id = ?
-              AND o.LOCATION_TYPE_LOOKUP_CODE = 'BUILDING'
-              AND o.BUILDING_DP IS NOT NULL
-              AND o.BUILDING_DP <> ''
-            ORDER BY o.BUILDING_DP
-        """;
+public List<Map<String, Object>> getBuildings(
+        @RequestParam Integer areaId,
+        @RequestParam Integer productTypeId
+) {
+    String sql = """
+        SELECT
+            MIN(p.PROPERTY_ID) AS propertyId,
+            MIN(o.LOCATION_ID) AS buildingLocationId,
+            o.BUILDING_DP AS BUILDING_DP,
+            o.BUILDING_DP AS building,
+            o.BUILDING_DP AS label,
+            o.BUILDING_DP AS value
+        FROM oc_properties_all p
+        JOIN oc_properties_locs_all o
+            ON p.PROPERTY_ID = o.PROPERTY_ID
+        WHERE p.area_id = ?
+          AND p.product_type_id = ?
+          AND o.LOCATION_TYPE_LOOKUP_CODE = 'BUILDING'
+          AND TRIM(COALESCE(o.ACTIVE_FLAG, '')) = 'Y'
+          AND o.BUILDING_DP IS NOT NULL
+          AND o.BUILDING_DP <> ''
+        GROUP BY o.BUILDING_DP
+        ORDER BY o.BUILDING_DP
+    """;
 
-        return jdbcTemplate.queryForList(sql, areaId, productTypeId);
-    }
+    return jdbcTemplate.queryForList(sql, areaId, productTypeId);
+}
 
     @GetMapping("/floors")
     public List<Map<String, Object>> getFloors(
