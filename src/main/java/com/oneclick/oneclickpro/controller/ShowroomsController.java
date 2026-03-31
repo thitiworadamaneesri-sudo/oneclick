@@ -38,33 +38,33 @@ public class ShowroomsController {
     }
 
     @GetMapping("/buildings")
-public List<Map<String, Object>> getBuildings(
-        @RequestParam Integer areaId,
-        @RequestParam Integer productTypeId
-) {
-    String sql = """
-        SELECT
-            MIN(p.PROPERTY_ID) AS propertyId,
-            MIN(o.LOCATION_ID) AS buildingLocationId,
-            o.BUILDING_DP AS BUILDING_DP,
-            o.BUILDING_DP AS building,
-            o.BUILDING_DP AS label,
-            o.BUILDING_DP AS value
-        FROM oc_properties_all p
-        JOIN oc_properties_locs_all o
-            ON p.PROPERTY_ID = o.PROPERTY_ID
-        WHERE p.area_id = ?
-          AND p.product_type_id = ?
-          AND o.LOCATION_TYPE_LOOKUP_CODE = 'BUILDING'
-          AND TRIM(COALESCE(o.ACTIVE_FLAG, '')) = 'Y'
-          AND o.BUILDING_DP IS NOT NULL
-          AND o.BUILDING_DP <> ''
-        GROUP BY o.BUILDING_DP
-        ORDER BY o.BUILDING_DP
-    """;
+    public List<Map<String, Object>> getBuildings(
+            @RequestParam Integer areaId,
+            @RequestParam Integer productTypeId
+    ) {
+        String sql = """
+            SELECT
+                MIN(p.PROPERTY_ID) AS propertyId,
+                MIN(o.LOCATION_ID) AS buildingLocationId,
+                TRIM(o.BUILDING_DP) AS BUILDING_DP,
+                TRIM(o.BUILDING_DP) AS building,
+                TRIM(o.BUILDING_DP) AS label,
+                TRIM(o.BUILDING_DP) AS value
+            FROM oc_properties_all p
+            JOIN oc_properties_locs_all o
+                ON p.PROPERTY_ID = o.PROPERTY_ID
+            WHERE p.area_id = ?
+              AND p.product_type_id = ?
+              AND o.LOCATION_TYPE_LOOKUP_CODE = 'BUILDING'
+              AND TRIM(COALESCE(o.ACTIVE_FLAG, '')) = 'Y'
+              AND o.BUILDING_DP IS NOT NULL
+              AND TRIM(o.BUILDING_DP) <> ''
+            GROUP BY TRIM(o.BUILDING_DP)
+            ORDER BY TRIM(o.BUILDING_DP)
+        """;
 
-    return jdbcTemplate.queryForList(sql, areaId, productTypeId);
-}
+        return jdbcTemplate.queryForList(sql, areaId, productTypeId);
+    }
 
     @GetMapping("/floors")
     public List<Map<String, Object>> getFloors(
@@ -93,23 +93,49 @@ public List<Map<String, Object>> getBuildings(
     }
 
     @GetMapping("/rooms")
-public List<Map<String, Object>> getRooms(
-        @RequestParam Integer propertyId,
-        @RequestParam String building,
-        @RequestParam String floor
-) {
-    System.out.println("=== ROOMS ACTIVE_FLAG Y ONLY v1 ===");
-    System.out.println("=== /api/rooms called ===");
-    System.out.println("propertyId = " + propertyId);
-    System.out.println("building = " + building);
-    System.out.println("floor = " + floor);
+    public List<Map<String, Object>> getRooms(
+            @RequestParam Integer propertyId,
+            @RequestParam String building,
+            @RequestParam String floor
+    ) {
+        System.out.println("=== ROOMS ACTIVE_FLAG Y ONLY v1 ===");
+        System.out.println("=== /api/rooms called ===");
+        System.out.println("propertyId = " + propertyId);
+        System.out.println("building = " + building);
+        System.out.println("floor = " + floor);
 
-    String sql = """
-        ...
-    """;
+        String sql = """
+            SELECT DISTINCT
+                o.LOCATION_ID AS locationId,
+                o.OFFICE_ID AS officeId,
+                o.OFFICE_DP AS id,
+                o.OFFICE_DP AS roomId,
+                o.OFFICE_DP AS roomNo,
+                o.OFFICE_DP AS office,
+                o.OFFICE_DP AS OFFICE_DP,
+                o.PROPERTY_ID AS propertyId,
+                o.BUILDING_DP AS BUILDING_DP,
+                o.BUILDING_DP AS building,
+                o.FLOOR_DP AS FLOOR_DP,
+                o.FLOOR_DP AS floor,
+                CASE
+                    WHEN o.STATUS = 'Y' THEN 'available'
+                    WHEN o.STATUS = 'R' THEN 'occupied'
+                    ELSE 'occupied'
+                END AS status
+            FROM oc_properties_locs_all o
+            WHERE o.PROPERTY_ID = ?
+              AND o.BUILDING_DP = ?
+              AND o.FLOOR_DP = ?
+              AND o.LOCATION_TYPE_LOOKUP_CODE = 'OFFICE'
+              AND TRIM(COALESCE(o.ACTIVE_FLAG, '')) = 'Y'
+              AND o.OFFICE_DP IS NOT NULL
+              AND o.OFFICE_DP <> ''
+            ORDER BY o.OFFICE_DP
+        """;
 
-    return jdbcTemplate.queryForList(sql, propertyId, building, floor);
-}
+        return jdbcTemplate.queryForList(sql, propertyId, building, floor);
+    }
 
     @GetMapping
     public List<Map<String, Object>> getShowrooms(
