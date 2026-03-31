@@ -96,6 +96,11 @@ public class ShowroomsController {
             @RequestParam String building,
             @RequestParam String floor
     ) {
+        System.out.println("=== /api/rooms called ===");
+        System.out.println("propertyId = " + propertyId);
+        System.out.println("building = " + building);
+        System.out.println("floor = " + floor);
+
         String sql = """
             SELECT DISTINCT
                 o.LOCATION_ID AS locationId,
@@ -120,6 +125,7 @@ public class ShowroomsController {
               AND o.BUILDING_DP = ?
               AND o.FLOOR_DP = ?
               AND o.LOCATION_TYPE_LOOKUP_CODE = 'OFFICE'
+              AND TRIM(COALESCE(o.ACTIVE_FLAG, '')) = 'Y'
               AND o.OFFICE_DP IS NOT NULL
               AND o.OFFICE_DP <> ''
             ORDER BY o.OFFICE_DP
@@ -158,6 +164,7 @@ public class ShowroomsController {
             WHERE p.area_id = ?
               AND p.product_type_id = ?
               AND o.LOCATION_TYPE_LOOKUP_CODE = 'OFFICE'
+              AND TRIM(COALESCE(o.ACTIVE_FLAG, '')) = 'Y'
               AND o.OFFICE_DP IS NOT NULL
               AND o.OFFICE_DP <> ''
             ORDER BY o.BUILDING_DP, o.FLOOR_DP, o.OFFICE_DP
