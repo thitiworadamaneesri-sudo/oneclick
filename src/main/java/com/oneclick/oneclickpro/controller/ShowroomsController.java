@@ -98,11 +98,10 @@ public class ShowroomsController {
             @RequestParam String building,
             @RequestParam String floor
     ) {
-        System.out.println("=== ROOMS ACTIVE_FLAG Y ONLY v1 ===");
-        System.out.println("=== /api/rooms called ===");
+        System.out.println("=== ROOMS ACTIVE_FLAG Y ONLY v2 ===");
         System.out.println("propertyId = " + propertyId);
-        System.out.println("building = " + building);
-        System.out.println("floor = " + floor);
+        System.out.println("building = [" + building + "]");
+        System.out.println("floor = [" + floor + "]");
 
         String sql = """
             SELECT DISTINCT
@@ -114,10 +113,10 @@ public class ShowroomsController {
                 o.OFFICE_DP AS office,
                 o.OFFICE_DP AS OFFICE_DP,
                 o.PROPERTY_ID AS propertyId,
-                o.BUILDING_DP AS BUILDING_DP,
-                o.BUILDING_DP AS building,
-                o.FLOOR_DP AS FLOOR_DP,
-                o.FLOOR_DP AS floor,
+                TRIM(o.BUILDING_DP) AS BUILDING_DP,
+                TRIM(o.BUILDING_DP) AS building,
+                TRIM(o.FLOOR_DP) AS FLOOR_DP,
+                TRIM(o.FLOOR_DP) AS floor,
                 CASE
                     WHEN o.STATUS = 'Y' THEN 'available'
                     WHEN o.STATUS = 'R' THEN 'occupied'
@@ -125,16 +124,27 @@ public class ShowroomsController {
                 END AS status
             FROM oc_properties_locs_all o
             WHERE o.PROPERTY_ID = ?
-              AND o.BUILDING_DP = ?
-              AND o.FLOOR_DP = ?
+              AND TRIM(o.BUILDING_DP) = TRIM(?)
+              AND TRIM(o.FLOOR_DP) = TRIM(?)
               AND o.LOCATION_TYPE_LOOKUP_CODE = 'OFFICE'
               AND TRIM(COALESCE(o.ACTIVE_FLAG, '')) = 'Y'
               AND o.OFFICE_DP IS NOT NULL
-              AND o.OFFICE_DP <> ''
-            ORDER BY o.OFFICE_DP
+              AND TRIM(o.OFFICE_DP) <> ''
+            ORDER BY TRIM(o.OFFICE_DP)
         """;
 
-        return jdbcTemplate.queryForList(sql, propertyId, building, floor);
+        try {
+            List<Map<String, Object>> result =
+                    jdbcTemplate.queryForList(sql, propertyId, building, floor);
+
+            System.out.println("rooms result size = " + result.size());
+            return result;
+
+        } catch (Exception e) {
+            System.out.println("=== ERROR IN /api/rooms ===");
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @GetMapping

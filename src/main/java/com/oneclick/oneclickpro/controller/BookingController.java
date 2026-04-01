@@ -1,6 +1,8 @@
 package com.oneclick.oneclickpro.controller;
 
 import com.oneclick.oneclickpro.service.LineNotificationService;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.core.PreparedStatementCreatorFactory;
@@ -921,4 +923,20 @@ public class BookingController {
 
         return result;
     }
+    @PostMapping("/update-processed")
+public ResponseEntity<?> updateProcessed(@RequestBody Map<String, Object> body) {
+    Long id = Long.valueOf(body.get("id").toString());
+    Boolean processed = Boolean.valueOf(body.get("processed").toString());
+
+    String sql = """
+        UPDATE oc_guest_trans_all
+        SET processed = ?
+        WHERE guest_trans_id = ?
+    """;
+
+    jdbcTemplate.update(sql, processed ? "Y" : "N", id);
+
+    return ResponseEntity.ok(Map.of("success", true));
+}
+
 }
