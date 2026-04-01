@@ -369,72 +369,75 @@ public class BookingController {
     }
 
     @GetMapping("/admin-list")
-    public List<Map<String, Object>> getAdminList() {
-        String sql = """
-            SELECT
-                guest_trans_id AS id,
-                DATE_FORMAT(lease_commencement_date, '%Y-%m-%d') AS createdAt,
-                0 AS processed,
+public List<Map<String, Object>> getAdminList() {
+    String sql = """
+        SELECT
+            guest_trans_id AS id,
+            DATE_FORMAT(lease_commencement_date, '%Y-%m-%d') AS createdAt,
+            CASE
+                WHEN processed = 'Y' THEN 1
+                ELSE 0
+            END AS processed,
 
-                prefix AS title,
-                name AS firstName,
-                lasname AS lastName,
-                CASE
-                    WHEN organization_name IS NOT NULL AND TRIM(organization_name) <> ''
-                        THEN organization_name
-                    ELSE CONCAT(
-                        COALESCE(prefix, ''),
-                        CASE WHEN prefix IS NOT NULL AND TRIM(prefix) <> '' THEN ' ' ELSE '' END,
-                        COALESCE(name, ''),
-                        CASE WHEN name IS NOT NULL AND TRIM(name) <> '' THEN ' ' ELSE '' END,
-                        COALESCE(lasname, '')
-                    )
-                END AS fullName,
-                tax_number AS idCard,
-                NULL AS passportNo,
-                NULL AS occupation,
-                line_id AS lineId,
-                date_of_birth AS birthDate,
-                email1 AS email,
-                email2 AS email2,
-                contact_detail1 AS phone,
-                contact_detail2 AS phone2,
-                add_on_detail AS note,
+            prefix AS title,
+            name AS firstName,
+            lasname AS lastName,
+            CASE
+                WHEN organization_name IS NOT NULL AND TRIM(organization_name) <> ''
+                    THEN organization_name
+                ELSE CONCAT(
+                    COALESCE(prefix, ''),
+                    CASE WHEN prefix IS NOT NULL AND TRIM(prefix) <> '' THEN ' ' ELSE '' END,
+                    COALESCE(name, ''),
+                    CASE WHEN name IS NOT NULL AND TRIM(name) <> '' THEN ' ' ELSE '' END,
+                    COALESCE(lasname, '')
+                )
+            END AS fullName,
+            tax_number AS idCard,
+            NULL AS passportNo,
+            NULL AS occupation,
+            line_id AS lineId,
+            date_of_birth AS birthDate,
+            email1 AS email,
+            email2 AS email2,
+            contact_detail1 AS phone,
+            contact_detail2 AS phone2,
+            add_on_detail AS note,
 
-                address AS reg_houseNo,
-                moo AS reg_moo,
-                street AS reg_road,
-                province AS reg_province,
-                subdist AS reg_subdistrict,
-                district AS reg_district,
-                postcode AS reg_zip,
+            address AS reg_houseNo,
+            moo AS reg_moo,
+            street AS reg_road,
+            province AS reg_province,
+            subdist AS reg_subdistrict,
+            district AS reg_district,
+            postcode AS reg_zip,
 
-                cur_address AS con_houseNo,
-                cur_moo AS con_moo,
-                cur_street AS con_road,
-                cur_province AS con_province,
-                cur_subdist AS con_subdistrict,
-                cur_district AS con_district,
-                cur_postcode AS con_zip,
+            cur_address AS con_houseNo,
+            cur_moo AS con_moo,
+            cur_street AS con_road,
+            cur_province AS con_province,
+            cur_subdist AS con_subdistrict,
+            cur_district AS con_district,
+            cur_postcode AS con_zip,
 
-                process_type AS processType,
-                product_area AS projectZone,
-                product_type AS propertyType,
-                building AS building,
-                location_id AS roomNo,
-                lease_commencement_date AS startDate,
-                NULL AS contractMonths,
-                NULL AS rentPrice,
-                add_on_detail AS remark,
-                info_channel AS sourceChannel,
-                1 AS consentAccepted
+            process_type AS processType,
+            product_area AS projectZone,
+            product_type AS propertyType,
+            building AS building,
+            location_id AS roomNo,
+            lease_commencement_date AS startDate,
+            NULL AS contractMonths,
+            NULL AS rentPrice,
+            add_on_detail AS remark,
+            info_channel AS sourceChannel,
+            1 AS consentAccepted
 
-            FROM oc_guest_trans_all
-            ORDER BY guest_trans_id DESC
-            """;
+        FROM oc_guest_trans_all
+        ORDER BY guest_trans_id DESC
+        """;
 
-        return jdbcTemplate.queryForList(sql);
-    }
+    return jdbcTemplate.queryForList(sql);
+}
 
     @GetMapping("/latest")
     public List<Map<String, Object>> getLatestBookings() {
