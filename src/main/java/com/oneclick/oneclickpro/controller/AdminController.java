@@ -205,6 +205,25 @@ public class AdminController {
             data.put("vehicles", vehicles);
 
             // ============================
+// Keycard / Parking Card
+// ============================
+data.put("keycardRequirement", firstNonBlank(
+    guest, "keycard_req"
+));
+
+data.put("numberOfKeycards", firstNonBlank(
+    guest, "keycard_qty"
+));
+
+data.put("parkingCardRequirement", firstNonBlank(
+    guest, "parking_card_req"
+));
+
+data.put("numberOfParkingCards", firstNonBlank(
+    guest, "parking_card_qty"
+));
+
+            // ============================
             // Company / Signers / Contact person
             // ============================
             data.put("applicantType", firstNonBlank(
@@ -369,47 +388,40 @@ public class AdminController {
     }
 
     private Map<String, Object> findLocationInfoByOfficeId(Object officeId) {
-        Map<String, Object> result = new LinkedHashMap<>();
+    Map<String, Object> result = new LinkedHashMap<>();
 
-        if (officeId == null || String.valueOf(officeId).trim().isEmpty()) {
-            return result;
-        }
-
-        try {
-            List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
-                SELECT LOCATION_CODE, LOCATION_ALIAS, LOCATION_TYPE_LOOKUP_CODE
-                FROM oc_properties_locs_all
-                WHERE location_id = ?
-            """, officeId);
-
-            if (rows.isEmpty()) {
-                return result;
-            }
-
-            Map<String, Object> office = rows.get(0);
-
-            String locationCode = str(office.get("LOCATION_CODE"));
-            String alias = str(office.get("LOCATION_ALIAS"));
-
-            if (!isBlank(locationCode)) {
-                String[] parts = locationCode.split("-");
-
-                if (parts.length >= 3) {
-                    result.put("buildingName", parts[0]);
-                    result.put("floorName", parts[1]);
-                    result.put("officeName", parts[2]);
-                }
-            }
-
-            if (!result.containsKey("officeName") || isBlank(str(result.get("officeName")))) {
-                result.put("officeName", alias);
-            }
-
-            return result;
-        } catch (Exception e) {
-            return result;
-        }
+    if (officeId == null || String.valueOf(officeId).trim().isEmpty()) {
+        return result;
     }
+
+    try {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
+            SELECT
+                BUILDING_DP,
+                FLOOR_DP,
+                OFFICE_DP,
+                BUILDING,
+                FLOOR,
+                OFFICE
+            FROM oc_properties_locs_all
+            WHERE location_id = ?
+        """, officeId);
+
+        if (rows.isEmpty()) {
+            return result;
+        }
+
+        Map<String, Object> row = rows.get(0);
+
+        result.put("buildingName", firstNonBlank(row, "BUILDING_DP", "BUILDING"));
+        result.put("floorName", firstNonBlank(row, "FLOOR_DP", "FLOOR"));
+        result.put("officeName", firstNonBlank(row, "OFFICE_DP", "OFFICE"));
+
+        return result;
+    } catch (Exception e) {
+        return result;
+    }
+}
 
     private String findAreaNameByAreaId(String areaId) {
         if (isBlank(areaId)) return "";
