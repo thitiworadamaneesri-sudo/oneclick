@@ -442,29 +442,86 @@ data.put("numberOfParkingCards", firstNonBlank(
     }
 
     private List<Map<String, Object>> extractVehicles(Map<String, Object> guest) {
-        List<Map<String, Object>> list = new ArrayList<>();
+    List<Map<String, Object>> list = new ArrayList<>();
 
-        addVehicle(list, "รถยนต์ (Car)", guest.get("car_license_plate1"));
-        addVehicle(list, "รถยนต์ (Car)", guest.get("car_license_plate2"));
-        addVehicle(list, "รถยนต์ (Car)", guest.get("car_license_plate3"));
-        addVehicle(list, "รถยนต์ (Car)", guest.get("car_license_plate4"));
+    addVehicle(
+        list,
+        "รถยนต์ (Car)",
+        guest.get("car_license_plate1"),
+        guest.get("car_parking_type1")
+    );
+    addVehicle(
+        list,
+        "รถยนต์ (Car)",
+        guest.get("car_license_plate2"),
+        guest.get("car_parking_type2")
+    );
+    addVehicle(
+        list,
+        "รถยนต์ (Car)",
+        guest.get("car_license_plate3"),
+        null
+    );
+    addVehicle(
+        list,
+        "รถยนต์ (Car)",
+        guest.get("car_license_plate4"),
+        null
+    );
 
-        addVehicle(list, "จักรยานยนต์ (Motorcycle)", guest.get("mot_license_plate1"));
-        addVehicle(list, "จักรยานยนต์ (Motorcycle)", guest.get("mot_license_plate2"));
-        addVehicle(list, "จักรยานยนต์ (Motorcycle)", guest.get("mot_license_plate3"));
-        addVehicle(list, "จักรยานยนต์ (Motorcycle)", guest.get("mot_license_plate4"));
+    addVehicle(
+        list,
+        "จักรยานยนต์ (Motorcycle)",
+        guest.get("mot_license_plate1"),
+        null
+    );
+    addVehicle(
+        list,
+        "จักรยานยนต์ (Motorcycle)",
+        guest.get("mot_license_plate2"),
+        null
+    );
+    addVehicle(
+        list,
+        "จักรยานยนต์ (Motorcycle)",
+        guest.get("mot_license_plate3"),
+        null
+    );
+    addVehicle(
+        list,
+        "จักรยานยนต์ (Motorcycle)",
+        guest.get("mot_license_plate4"),
+        null
+    );
 
-        return list;
+    return list;
+}
+
+private void addVehicle(
+    List<Map<String, Object>> list,
+    String type,
+    Object reg,
+    Object parkingPlace
+) {
+    if (hasRealValue(reg)) {
+        Map<String, Object> v = new LinkedHashMap<>();
+        v.put("type", type);
+        v.put("registration", String.valueOf(reg).trim());
+        v.put("parkingPlace", normalizeParkingPlace(parkingPlace));
+        list.add(v);
     }
+}
 
-    private void addVehicle(List<Map<String, Object>> list, String type, Object reg) {
-        if (hasRealValue(reg)) {
-            Map<String, Object> v = new LinkedHashMap<>();
-            v.put("type", type);
-            v.put("registration", String.valueOf(reg).trim());
-            list.add(v);
-        }
-    }
+private String normalizeParkingPlace(Object value) {
+    if (value == null) return "";
+
+    String v = String.valueOf(value).trim().toUpperCase();
+
+    if ("INDOOR".equals(v)) return "ในร่ม (Indoor)";
+    if ("OUTDOOR".equals(v)) return "กลางแจ้ง (Outdoor)";
+
+    return String.valueOf(value).trim();
+}
 
     private int calculateVehicleCount(Map<String, Object> guest) {
         int carQty = toInt(firstNonBlank(guest, "car_qty"));

@@ -10,11 +10,11 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.Types;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,10 +36,11 @@ public class BookingController {
     }
 
     @PostMapping("/save")
-    public String saveBooking(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> saveBooking(@RequestBody Map<String, Object> body) {
         System.out.println("payload = " + body);
 
         String[] carRegs = extractVehicleRegs(body.get("vehicleRegistrations"));
+        String[] carParkingPlaces = extractParkingPlaces(body.get("carParkingPlaces"));
 
         Integer resolvedAreaId = toIntOrNull(
             firstNonBlank(
@@ -90,6 +91,8 @@ public class BookingController {
                 car_license_plate2,
                 car_license_plate3,
                 car_license_plate4,
+                car_parking_type1,
+                car_parking_type2,
                 keycard_req,
                 keycard_qty,
                 parking_card_req,
@@ -150,7 +153,7 @@ public class BookingController {
                 number_of_occupants,
                 add_on_detail,
                 info_channel
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
         Object[] params = new Object[]{
@@ -163,19 +166,21 @@ public class BookingController {
             resolvedBuildingId,
             resolvedOfficeId,
             toParkingReq(body.get("needParking")),
-toCarType(body.get("parkingType")),
-toCarQty(body.get("parkingType"), body.get("parkingCount")),
-toMotQty(body.get("parkingType"), body.get("parkingCount")),
-carRegs[0],
-carRegs[1],
-carRegs[2],
-carRegs[3],
-pick(body, "keycard_req", "keycardReq"),
-toIntOrNull(pick(body, "keycard_qty", "keycardQty")),
-pick(body, "parking_card_req", "parkingCardReq"),
-toIntOrNull(pick(body, "parking_card_qty", "parkingCardQty")),
-resolveTaxNumber(body),
-resolveTaxNumberType(body),
+            toCarType(body.get("parkingType")),
+            toCarQty(body.get("parkingType"), body.get("parkingCount")),
+            toMotQty(body.get("parkingType"), body.get("parkingCount")),
+            carRegs[0],
+            carRegs[1],
+            carRegs[2],
+            carRegs[3],
+            carParkingPlaces[0],
+            carParkingPlaces[1],
+            pick(body, "keycard_req", "keycardReq"),
+            toIntOrNull(pick(body, "keycard_qty", "keycardQty")),
+            pick(body, "parking_card_req", "parkingCardReq"),
+            toIntOrNull(pick(body, "parking_card_qty", "parkingCardQty")),
+            resolveTaxNumber(body),
+            resolveTaxNumberType(body),
             body.get("prefix"),
             body.get("name"),
             body.get("lastname"),
@@ -238,76 +243,6 @@ resolveTaxNumberType(body),
         try {
             KeyHolder keyHolder = new GeneratedKeyHolder();
 
-            int[] types = new int[]{
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.INTEGER,
-                Types.VARCHAR,
-                Types.INTEGER,
-                Types.VARCHAR,
-                Types.INTEGER,
-                Types.INTEGER,
-                Types.VARCHAR,
-                Types.INTEGER,
-                Types.INTEGER,
-                Types.INTEGER,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.VARCHAR,
-                Types.INTEGER,
-                Types.VARCHAR,
-                Types.VARCHAR
-            };
-
             PreparedStatementCreatorFactory pscFactory =
                 new PreparedStatementCreatorFactory(sql);
 
@@ -320,20 +255,19 @@ resolveTaxNumberType(body),
             System.out.println("resolvedBuildingId = " + resolvedBuildingId);
             System.out.println("resolvedOfficeId = " + resolvedOfficeId);
             System.out.println("params.length = " + params.length);
-            System.out.println("params = " + Arrays.toString(params));
 
             jdbcTemplate.update(psc, keyHolder);
 
             Number generatedId = keyHolder.getKey();
 
             try {
-    String zoneDisplay = resolveZoneDisplay(body, resolvedAreaId);
-    String buildingDisplay = resolveBuildingDisplay(body, resolvedBuildingId);
-    String roomDisplay = resolveRoomDisplay(body, resolvedOfficeId);
+                String zoneDisplay = resolveZoneDisplay(body, resolvedAreaId);
+                String buildingDisplay = resolveBuildingDisplay(body, resolvedBuildingId);
+                String roomDisplay = resolveRoomDisplay(body, resolvedOfficeId);
 
-    String displayName = resolveLineDisplayName(body);
+                String displayName = resolveLineDisplayName(body);
 
-    String message = """
+                String message = """
 📢 แจ้งเตือน OneClick
 
 มีผู้ลงทะเบียนใหม่
@@ -349,110 +283,127 @@ resolveTaxNumberType(body),
 
 👉 กรุณาตรวจสอบในระบบ
 """.formatted(
-        generatedId != null ? generatedId.longValue() : "-",
-        resolveProcessType(body) != null ? resolveProcessType(body) : "-",
-        displayName != null ? displayName : "-",
-        zoneDisplay != null ? zoneDisplay : "-",
-        buildingDisplay != null ? buildingDisplay : "-",
-        roomDisplay != null ? roomDisplay : "-",
-        normalizeDate(body.get("leaseCommencementDate")) != null
-            ? normalizeDate(body.get("leaseCommencementDate"))
-            : "-",
-        normalizeDate(body.get("leaseEndDate")) != null
-            ? normalizeDate(body.get("leaseEndDate"))
-            : "-"
-    ) + "\n\nhttps://ppavis.com/registers/#/admin/leads";
+                    generatedId != null ? generatedId.longValue() : "-",
+                    resolveProcessType(body) != null ? resolveProcessType(body) : "-",
+                    displayName != null ? displayName : "-",
+                    zoneDisplay != null ? zoneDisplay : "-",
+                    buildingDisplay != null ? buildingDisplay : "-",
+                    roomDisplay != null ? roomDisplay : "-",
+                    normalizeDate(body.get("leaseCommencementDate")) != null
+                        ? normalizeDate(body.get("leaseCommencementDate"))
+                        : "-",
+                    normalizeDate(body.get("leaseEndDate")) != null
+                        ? normalizeDate(body.get("leaseEndDate"))
+                        : "-"
+                ) + "\n\nhttps://ppavis.com/registers/#/admin/leads";
 
-    System.out.println("==== LINE MESSAGE START ====");
-    System.out.println(message);
-    System.out.println("==== LINE MESSAGE END ====");
+                System.out.println("==== LINE MESSAGE START ====");
+                System.out.println(message);
+                System.out.println("==== LINE MESSAGE END ====");
 
-    lineNotificationService.sendText(message);
-} catch (Exception lineEx) {
-    lineEx.printStackTrace();
-}
+                lineNotificationService.sendText(message);
+            } catch (Exception lineEx) {
+                lineEx.printStackTrace();
+            }
 
-            return generatedId != null ? "saved:" + generatedId.longValue() : "saved";
+            Map<String, Object> ok = new LinkedHashMap<>();
+            ok.put("success", true);
+            ok.put("id", generatedId != null ? generatedId.longValue() : null);
+            ok.put("message", "saved");
+
+            return ResponseEntity.ok(ok);
+
         } catch (Exception e) {
             e.printStackTrace();
-            return "error: " + e.getClass().getSimpleName() + " - " + e.getMessage();
+
+            Throwable root = e;
+            while (root.getCause() != null) {
+                root = root.getCause();
+            }
+
+            Map<String, Object> err = new LinkedHashMap<>();
+            err.put("success", false);
+            err.put("message", e.getClass().getSimpleName() + " - " + e.getMessage());
+            err.put("rootCause", root.getClass().getSimpleName() + " - " + root.getMessage());
+
+            return ResponseEntity.status(500).body(err);
         }
     }
 
     @GetMapping("/admin-list")
-public List<Map<String, Object>> getAdminList() {
-    String sql = """
-        SELECT
-            guest_trans_id AS id,
-            DATE_FORMAT(lease_commencement_date, '%Y-%m-%d') AS createdAt,
-            CASE
-                WHEN processed = 'Y' THEN 1
-                ELSE 0
-            END AS processed,
+    public List<Map<String, Object>> getAdminList() {
+        String sql = """
+            SELECT
+                guest_trans_id AS id,
+                DATE_FORMAT(lease_commencement_date, '%Y-%m-%d') AS createdAt,
+                CASE
+                    WHEN processed = 'Y' THEN 1
+                    ELSE 0
+                END AS processed,
 
-            prefix AS title,
-            name AS firstName,
-            lasname AS lastName,
-            CASE
-                WHEN organization_name IS NOT NULL AND TRIM(organization_name) <> ''
-                    THEN organization_name
-                ELSE CONCAT(
-                    COALESCE(prefix, ''),
-                    CASE WHEN prefix IS NOT NULL AND TRIM(prefix) <> '' THEN ' ' ELSE '' END,
-                    COALESCE(name, ''),
-                    CASE WHEN name IS NOT NULL AND TRIM(name) <> '' THEN ' ' ELSE '' END,
-                    COALESCE(lasname, '')
-                )
-            END AS fullName,
-            tax_number AS idCard,
-            NULL AS passportNo,
-            occupation AS occupation,
-            line_id AS lineId,
-            keycard_req AS keycardReq,
-    keycard_qty AS keycardQty,
-    parking_card_req AS parkingCardReq,
-    parking_card_qty AS parkingCardQty,
-            date_of_birth AS birthDate,
-            email1 AS email,
-            email2 AS email2,
-            contact_detail1 AS phone,
-            contact_detail2 AS phone2,
-            add_on_detail AS note,
+                prefix AS title,
+                name AS firstName,
+                lasname AS lastName,
+                CASE
+                    WHEN organization_name IS NOT NULL AND TRIM(organization_name) <> ''
+                        THEN organization_name
+                    ELSE CONCAT(
+                        COALESCE(prefix, ''),
+                        CASE WHEN prefix IS NOT NULL AND TRIM(prefix) <> '' THEN ' ' ELSE '' END,
+                        COALESCE(name, ''),
+                        CASE WHEN name IS NOT NULL AND TRIM(name) <> '' THEN ' ' ELSE '' END,
+                        COALESCE(lasname, '')
+                    )
+                END AS fullName,
+                tax_number AS idCard,
+                NULL AS passportNo,
+                occupation AS occupation,
+                line_id AS lineId,
+                keycard_req AS keycardReq,
+                keycard_qty AS keycardQty,
+                parking_card_req AS parkingCardReq,
+                parking_card_qty AS parkingCardQty,
+                date_of_birth AS birthDate,
+                email1 AS email,
+                email2 AS email2,
+                contact_detail1 AS phone,
+                contact_detail2 AS phone2,
+                add_on_detail AS note,
 
-            address AS reg_houseNo,
-            moo AS reg_moo,
-            street AS reg_road,
-            province AS reg_province,
-            subdist AS reg_subdistrict,
-            district AS reg_district,
-            postcode AS reg_zip,
+                address AS reg_houseNo,
+                moo AS reg_moo,
+                street AS reg_road,
+                province AS reg_province,
+                subdist AS reg_subdistrict,
+                district AS reg_district,
+                postcode AS reg_zip,
 
-            cur_address AS con_houseNo,
-            cur_moo AS con_moo,
-            cur_street AS con_road,
-            cur_province AS con_province,
-            cur_subdist AS con_subdistrict,
-            cur_district AS con_district,
-            cur_postcode AS con_zip,
+                cur_address AS con_houseNo,
+                cur_moo AS con_moo,
+                cur_street AS con_road,
+                cur_province AS con_province,
+                cur_subdist AS con_subdistrict,
+                cur_district AS con_district,
+                cur_postcode AS con_zip,
 
-            process_type AS processType,
-            product_area AS projectZone,
-            product_type AS propertyType,
-            building AS building,
-            location_id AS roomNo,
-            lease_commencement_date AS startDate,
-            NULL AS contractMonths,
-            NULL AS rentPrice,
-            add_on_detail AS remark,
-            info_channel AS sourceChannel,
-            1 AS consentAccepted
+                process_type AS processType,
+                product_area AS projectZone,
+                product_type AS propertyType,
+                building AS building,
+                location_id AS roomNo,
+                lease_commencement_date AS startDate,
+                NULL AS contractMonths,
+                NULL AS rentPrice,
+                add_on_detail AS remark,
+                info_channel AS sourceChannel,
+                1 AS consentAccepted
 
-        FROM oc_guest_trans_all
-        ORDER BY guest_trans_id DESC
-        """;
+            FROM oc_guest_trans_all
+            ORDER BY guest_trans_id DESC
+            """;
 
-    return jdbcTemplate.queryForList(sql);
-}
+        return jdbcTemplate.queryForList(sql);
+    }
 
     @GetMapping("/latest")
     public List<Map<String, Object>> getLatestBookings() {
@@ -856,21 +807,46 @@ public List<Map<String, Object>> getAdminList() {
 
     private static Integer toCarType(Object parkingType) {
         if (parkingType == null) return null;
-        return "car".equalsIgnoreCase(String.valueOf(parkingType).trim()) ? 1 : 0;
+
+        String type = String.valueOf(parkingType).trim().toLowerCase();
+
+        if ("car".equals(type) || "both".equals(type)) {
+            return 1;
+        }
+
+        return 0;
     }
 
     private static Integer toCarQty(Object parkingType, Object parkingCount) {
-        if (!"car".equalsIgnoreCase(String.valueOf(parkingType).trim())) {
-            return 0;
+        if (parkingType == null) return 0;
+
+        String type = String.valueOf(parkingType).trim().toLowerCase();
+
+        if ("car".equals(type)) {
+            return toInt(parkingCount);
         }
-        return toInt(parkingCount);
+
+        if ("both".equals(type)) {
+            return 1;
+        }
+
+        return 0;
     }
 
     private static Integer toMotQty(Object parkingType, Object parkingCount) {
-        if (!"motorcycle".equalsIgnoreCase(String.valueOf(parkingType).trim())) {
-            return 0;
+        if (parkingType == null) return 0;
+
+        String type = String.valueOf(parkingType).trim().toLowerCase();
+
+        if ("motorcycle".equals(type)) {
+            return toInt(parkingCount);
         }
-        return toInt(parkingCount);
+
+        if ("both".equals(type)) {
+            return 1;
+        }
+
+        return 0;
     }
 
     private static Integer toInt(Object value) {
@@ -929,6 +905,22 @@ public List<Map<String, Object>> getAdminList() {
         return text;
     }
 
+    private static String[] extractParkingPlaces(Object raw) {
+        String[] result = new String[]{null, null};
+
+        if (raw instanceof List<?> list) {
+            for (int i = 0; i < list.size() && i < 2; i++) {
+                Object item = list.get(i);
+                if (item != null) {
+                    String value = String.valueOf(item).trim().toUpperCase();
+                    result[i] = value.isEmpty() ? null : value;
+                }
+            }
+        }
+
+        return result;
+    }
+
     private static String[] extractVehicleRegs(Object raw) {
         String[] result = new String[]{null, null, null, null};
 
@@ -941,20 +933,20 @@ public List<Map<String, Object>> getAdminList() {
 
         return result;
     }
+
     @PostMapping("/update-processed")
-public ResponseEntity<?> updateProcessed(@RequestBody Map<String, Object> body) {
-    Long id = Long.valueOf(body.get("id").toString());
-    Boolean processed = Boolean.valueOf(body.get("processed").toString());
+    public ResponseEntity<?> updateProcessed(@RequestBody Map<String, Object> body) {
+        Long id = Long.valueOf(body.get("id").toString());
+        Boolean processed = Boolean.valueOf(body.get("processed").toString());
 
-    String sql = """
-        UPDATE oc_guest_trans_all
-        SET processed = ?
-        WHERE guest_trans_id = ?
-    """;
+        String sql = """
+            UPDATE oc_guest_trans_all
+            SET processed = ?
+            WHERE guest_trans_id = ?
+        """;
 
-    jdbcTemplate.update(sql, processed ? "Y" : "N", id);
+        jdbcTemplate.update(sql, processed ? "Y" : "N", id);
 
-    return ResponseEntity.ok(Map.of("success", true));
-}
-
+        return ResponseEntity.ok(Map.of("success", true));
+    }
 }
